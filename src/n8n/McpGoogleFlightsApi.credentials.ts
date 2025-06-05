@@ -1,7 +1,5 @@
-import {
-  ICredentialType,
-  INodeProperties,
-} from 'n8n-workflow';
+import type { ICredentialType } from 'n8n-workflow';
+import type { INodeProperties } from 'n8n-workflow';
 
 export class McpGoogleFlightsApi implements ICredentialType {
   name = 'mcpGoogleFlightsApi';

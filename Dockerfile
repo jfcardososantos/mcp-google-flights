@@ -1,20 +1,19 @@
 FROM node:18-alpine
 
-# Instalar dependências de segurança
-RUN apk add --no-cache tini
+# Instalar dependências necessárias
+RUN apk add --no-cache python3 make g++
 
-# Configurar usuário não-root
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001 && \
-    mkdir -p /app/logs && \
-    chown -R nodejs:nodejs /app
+# Criar usuário não-root
+RUN addgroup -S nodejs && adduser -S nodejs -G nodejs
 
+# Definir diretório de trabalho
 WORKDIR /app
 
-# Copiar arquivos de dependências
+# Copiar arquivos de configuração
 COPY package*.json ./
+COPY tsconfig.json ./
 
-# Instalar todas as dependências (incluindo devDependencies) para o build
+# Instalar dependências
 RUN npm install --ignore-scripts
 
 # Copiar código fonte
@@ -30,21 +29,11 @@ RUN npm run build && \
     # Limpar cache
     npm cache clean --force
 
-# Configurar permissões
-RUN chown -R nodejs:nodejs /app
-
 # Mudar para usuário não-root
 USER nodejs
 
 # Expor porta
 EXPOSE 3000
 
-# Configurar healthcheck
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
-
-# Usar tini como init system
-ENTRYPOINT ["/sbin/tini", "--"]
-
-# Iniciar aplicação
+# Comando para iniciar a aplicação
 CMD ["npm", "start"]

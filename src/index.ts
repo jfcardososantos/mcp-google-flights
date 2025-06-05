@@ -112,7 +112,7 @@ class GoogleFlightsMCPServer {
 
   private setupToolHandlers() {
     // Listar ferramentas disponíveis
-    this.server.setRequestHandler('listTools', async () => {
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
       return {
         tools: [
           {
@@ -222,17 +222,17 @@ class GoogleFlightsMCPServer {
     });
 
     // Manipular chamadas de ferramentas
-    this.server.setRequestHandler('callTool', async (request: CallToolRequest) => {
+    this.server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest) => {
       const { name, arguments: args } = request.params;
 
       try {
         switch (name) {
           case 'search_flights':
-            return await this.searchFlights(args);
+            return await this.searchFlights(args as unknown as z.infer<typeof FlightSearchSchema>);
           case 'search_airports':
-            return await this.searchAirports(args);
+            return await this.searchAirports(args as unknown as z.infer<typeof AirportSearchSchema>);
           case 'get_flight_insights':
-            return await this.getFlightInsights(args);
+            return await this.getFlightInsights(args as unknown as { flights_data: string; criteria?: string });
           default:
             throw new Error(`Ferramenta desconhecida: ${name}`);
         }
@@ -250,24 +250,22 @@ class GoogleFlightsMCPServer {
     });
   }
 
-  private async searchFlights(args: unknown) {
-    const validatedArgs = FlightSearchSchema.parse(args);
-
+  private async searchFlights(args: z.infer<typeof FlightSearchSchema>) {
     try {
       const params = {
         engine: 'google_flights',
-        departure_id: validatedArgs.departure_id,
-        arrival_id: validatedArgs.arrival_id,
-        outbound_date: validatedArgs.outbound_date,
-        return_date: validatedArgs.return_date,
-        currency: validatedArgs.currency,
-        hl: validatedArgs.language,
-        adults: validatedArgs.adults,
-        children: validatedArgs.children,
-        infants_in_seat: validatedArgs.infants,
-        travel_class: validatedArgs.travel_class,
-        max_price: validatedArgs.max_price,
-        stops: validatedArgs.stops,
+        departure_id: args.departure_id,
+        arrival_id: args.arrival_id,
+        outbound_date: args.outbound_date,
+        return_date: args.return_date,
+        currency: args.currency,
+        hl: args.language,
+        adults: args.adults,
+        children: args.children,
+        infants_in_seat: args.infants,
+        travel_class: args.travel_class,
+        max_price: args.max_price,
+        stops: args.stops,
         api_key: this.serpApiKey,
       };
 
@@ -291,7 +289,7 @@ class GoogleFlightsMCPServer {
         airline: flight.flights[0]?.airline || 'N/A',
         airline_logo: flight.airline_logo,
         price: flight.price,
-        currency: validatedArgs.currency,
+        currency: args.currency,
         total_duration: flight.total_duration,
         departure_time: flight.flights[0]?.departure_airport?.time,
         arrival_time: flight.flights[flight.flights.length - 1]?.arrival_airport?.time,
@@ -310,17 +308,17 @@ class GoogleFlightsMCPServer {
         price_range: {
           min: Math.min(...processedFlights.map(f => f.price)),
           max: Math.max(...processedFlights.map(f => f.price)),
-          currency: validatedArgs.currency,
+          currency: args.currency,
         },
         airlines: [...new Set(processedFlights.map(f => f.airline))],
         search_parameters: {
-          route: `${validatedArgs.departure_id} → ${validatedArgs.arrival_id}`,
-          departure_date: validatedArgs.outbound_date,
-          return_date: validatedArgs.return_date,
+          route: `${args.departure_id} → ${args.arrival_id}`,
+          departure_date: args.outbound_date,
+          return_date: args.return_date,
           passengers: {
-            adults: validatedArgs.adults,
-            children: validatedArgs.children,
-            infants: validatedArgs.infants,
+            adults: args.adults,
+            children: args.children,
+            infants: args.infants,
           },
         },
       };
@@ -342,15 +340,13 @@ class GoogleFlightsMCPServer {
     }
   }
 
-  private async searchAirports(args: unknown) {
-    const validatedArgs = AirportSearchSchema.parse(args);
-
+  private async searchAirports(args: z.infer<typeof AirportSearchSchema>) {
     try {
       const params = {
         engine: 'google_flights',
         type: 'airports',
-        query: validatedArgs.query,
-        hl: validatedArgs.language,
+        query: args.query,
+        hl: args.language,
         api_key: this.serpApiKey,
       };
 
@@ -371,7 +367,7 @@ class GoogleFlightsMCPServer {
           {
             type: 'text',
             text: JSON.stringify({
-              query: validatedArgs.query,
+              query: args.query,
               total_airports_found: airports.length,
               airports,
             }, null, 2),
@@ -383,7 +379,7 @@ class GoogleFlightsMCPServer {
     }
   }
 
-  private async getFlightInsights(args: unknown) {
+  private async getFlightInsights(args: { flights_data: string; criteria?: string }) {
     try {
       const flightsData = JSON.parse(args.flights_data);
       const criteria = args.criteria || 'preco'; // Alterado para 'preco' como padrão

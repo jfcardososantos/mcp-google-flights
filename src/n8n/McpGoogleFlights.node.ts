@@ -1,15 +1,18 @@
-import { IExecuteFunctions } from 'n8n-core';
-import {
-  INodeExecutionData,
-  INodeType,
-  INodeTypeDescription,
-} from 'n8n-workflow';
+import { getExecuteFunctions } from 'n8n-core';
+import type { IExecuteFunctions } from 'n8n-core';
+import type { INodeExecutionData } from 'n8n-workflow';
+import type { INodeType } from 'n8n-workflow';
+import type { INodeTypeDescription } from 'n8n-workflow';
+import type { IDataObject } from 'n8n-workflow';
+import type { NodeConnectionType } from 'n8n-workflow';
+import type { INodeInputConfiguration } from 'n8n-workflow';
+import type { INodeOutputConfiguration } from 'n8n-workflow';
 
 export class McpGoogleFlights implements INodeType {
   description: INodeTypeDescription = {
     displayName: 'MCP Google Flights',
     name: 'mcpGoogleFlights',
-    icon: 'file:googleFlights.svg',
+    icon: 'file:google-flights.svg',
     group: ['transform'],
     version: 1,
     subtitle: '={{$parameter["operation"]}}',
@@ -17,8 +20,8 @@ export class McpGoogleFlights implements INodeType {
     defaults: {
       name: 'MCP Google Flights',
     },
-    inputs: ['main'],
-    outputs: ['main'],
+    inputs: ['main'] as NodeConnectionType[],
+    outputs: ['main'] as NodeConnectionType[],
     credentials: [
       {
         name: 'mcpGoogleFlightsApi',
@@ -36,19 +39,16 @@ export class McpGoogleFlights implements INodeType {
             name: 'Search Flights',
             value: 'searchFlights',
             description: 'Buscar voos entre dois aeroportos',
-            action: 'Search flights between two airports',
           },
           {
             name: 'Search Airports',
             value: 'searchAirports',
             description: 'Buscar aeroportos por nome ou código',
-            action: 'Search airports by name or code',
           },
           {
             name: 'Get Flight Insights',
             value: 'getFlightInsights',
             description: 'Obter insights sobre voos',
-            action: 'Get insights about flights',
           },
         ],
         default: 'searchFlights',
@@ -135,64 +135,51 @@ export class McpGoogleFlights implements INodeType {
 
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
     const items = this.getInputData();
-    const returnData: INodeExecutionData[] = [];
+    const returnData: IDataObject[] = [];
     const operation = this.getNodeParameter('operation', 0) as string;
 
     for (let i = 0; i < items.length; i++) {
       try {
-        let result;
+        let command: IDataObject | undefined;
 
         if (operation === 'searchFlights') {
-          const departureId = this.getNodeParameter('departureId', i) as string;
-          const arrivalId = this.getNodeParameter('arrivalId', i) as string;
-          const outboundDate = this.getNodeParameter('outboundDate', i) as string;
-          const returnDate = this.getNodeParameter('returnDate', i) as string;
-
-          result = {
+          command = {
             command: 'search_flights',
             arguments: {
-              departure_id: departureId,
-              arrival_id: arrivalId,
-              outbound_date: outboundDate,
-              return_date: returnDate,
+              departure_id: this.getNodeParameter('departureId', i) as string,
+              arrival_id: this.getNodeParameter('arrivalId', i) as string,
+              outbound_date: this.getNodeParameter('outboundDate', i) as string,
+              return_date: this.getNodeParameter('returnDate', i) as string,
             },
           };
         } else if (operation === 'searchAirports') {
-          const query = this.getNodeParameter('query', i) as string;
-
-          result = {
+          command = {
             command: 'search_airports',
             arguments: {
-              query,
+              query: this.getNodeParameter('query', i) as string,
             },
           };
         } else if (operation === 'getFlightInsights') {
-          const flightsData = this.getNodeParameter('flightsData', i) as string;
-
-          result = {
+          command = {
             command: 'get_flight_insights',
             arguments: {
-              flights_data: flightsData,
+              flights_data: this.getNodeParameter('flightsData', i) as string,
+              criteria: this.getNodeParameter('criteria', i) as string,
             },
           };
         }
 
-        returnData.push({
-          json: result,
-        });
+        if (command) {
+          returnData.push(command);
+        }
       } catch (error) {
-        if (this.continueOnFail()) {
-          returnData.push({
-            json: {
-              error: error.message,
-            },
-          });
-          continue;
+        if (error instanceof Error) {
+          throw new Error(`Error in item ${i}: ${error.message}`);
         }
         throw error;
       }
     }
 
-    return [returnData];
+    return [this.helpers.returnJsonArray(returnData)];
   }
 } 
