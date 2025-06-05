@@ -15,7 +15,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instalar dependências
-RUN npm install --omit=dev && \
+RUN npm install --omit=dev --ignore-scripts && \
     npm cache clean --force
 
 # Copiar código fonte

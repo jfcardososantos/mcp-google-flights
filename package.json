@@ -1,5 +1,5 @@
 {
-  "name": "mcp-google-flights",
+  "name": "n8n-nodes-mcp-google-flights",
   "version": "1.0.0",
   "description": "MCP Server for Google Flights search using SerpAPI",
   "main": "dist/index.js",
@@ -15,15 +15,15 @@
     "test:coverage": "jest --coverage",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "prepare": "husky install"
+    "postinstall": "node -e \"try { require('husky').install() } catch (e) {if (e.code !== 'MODULE_NOT_FOUND') throw e}\""
   },
   "keywords": [
+    "n8n-community-node-package",
     "mcp",
     "google-flights",
     "serpapi",
     "travel",
-    "flights",
-    "n8n"
+    "flights"
   ],
   "author": "Felipe Santos",
   "license": "MIT",
@@ -73,6 +73,64 @@
     "*.ts": [
       "eslint --fix",
       "prettier --write"
+    ]
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      {
+        "name": "mcpGoogleFlightsApi",
+        "displayName": "MCP Google Flights API",
+        "documentationUrl": "https://github.com/jfcardososantos/mcp-google-flights",
+        "properties": [
+          {
+            "displayName": "SERP API Key",
+            "name": "serpApiKey",
+            "type": "string",
+            "default": "",
+            "required": true,
+            "description": "Chave da API do SerpAPI"
+          }
+        ]
+      }
+    ],
+    "nodes": [
+      {
+        "nodeType": "mcpGoogleFlights",
+        "displayName": "MCP Google Flights",
+        "description": "Busca de voos usando Google Flights via MCP",
+        "defaults": {
+          "name": "MCP Google Flights"
+        },
+        "inputs": ["main"],
+        "outputs": ["main"],
+        "properties": [
+          {
+            "displayName": "Operation",
+            "name": "operation",
+            "type": "options",
+            "noDataExpression": true,
+            "options": [
+              {
+                "name": "Search Flights",
+                "value": "searchFlights",
+                "description": "Buscar voos entre dois aeroportos"
+              },
+              {
+                "name": "Search Airports",
+                "value": "searchAirports",
+                "description": "Buscar aeroportos por nome ou código"
+              },
+              {
+                "name": "Get Flight Insights",
+                "value": "getFlightInsights",
+                "description": "Obter insights sobre voos"
+              }
+            ],
+            "default": "searchFlights"
+          }
+        ]
+      }
     ]
   }
 }
