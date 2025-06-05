@@ -10,6 +10,7 @@ import {
 import axios from 'axios';
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import logger from './config/logger.js';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -89,7 +90,7 @@ class GoogleFlightsMCPServer {
   constructor() {
     this.serpApiKey = process.env.SERP_API_KEY || '';
     if (!this.serpApiKey) {
-      console.error('SERP_API_KEY não encontrada nas variáveis de ambiente');
+      logger.error('SERP_API_KEY não encontrada nas variáveis de ambiente');
       process.exit(1);
     }
 
@@ -102,7 +103,8 @@ class GoogleFlightsMCPServer {
         capabilities: {
           tools: {},
         },
-      }
+      },
+      new StdioServerTransport()
     );
 
     this.setupToolHandlers();
@@ -235,6 +237,7 @@ class GoogleFlightsMCPServer {
             throw new Error(`Ferramenta desconhecida: ${name}`);
         }
       } catch (error) {
+        logger.error(`Erro ao executar ${name}:`, error);
         return {
           content: [
             {
@@ -500,15 +503,19 @@ class GoogleFlightsMCPServer {
   }
 
   async start() {
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
-    console.error('Google Flights MCP Server iniciado');
+    try {
+      await this.server.start();
+      logger.info('Servidor MCP Google Flights iniciado');
+    } catch (error) {
+      logger.error('Erro ao iniciar servidor:', error);
+      process.exit(1);
+    }
   }
 }
 
-// Iniciar servidor
+// Iniciar o servidor
 const server = new GoogleFlightsMCPServer();
 server.start().catch((error) => {
-  console.error('Erro ao iniciar servidor:', error);
+  logger.error('Erro fatal:', error);
   process.exit(1);
 });
