@@ -14,7 +14,8 @@ COPY package*.json ./
 COPY tsconfig.json ./
 
 # Instalar dependências
-RUN npm install --ignore-scripts
+RUN npm install --ignore-scripts && \
+    npm install --save-dev @types/node @types/jest @types/axios
 
 # Copiar código fonte
 COPY --chown=nodejs:nodejs . .

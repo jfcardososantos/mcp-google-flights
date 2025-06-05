@@ -9,7 +9,10 @@ declare module '@modelcontextprotocol/sdk/server/index.js' {
         tools: Record<string, unknown>;
       }
     );
-    setRequestHandler(schema: unknown, handler: (request: unknown) => Promise<unknown>): void;
+    setRequestHandler<T = unknown, R = unknown>(
+      schema: unknown,
+      handler: (request: T) => Promise<R>
+    ): void;
     connect(transport: unknown): Promise<void>;
   }
 }
@@ -37,5 +40,11 @@ declare module '@modelcontextprotocol/sdk/types.js' {
       name: string;
       arguments: unknown;
     };
+  };
+  export type ToolResponse = {
+    content: Array<{
+      type: string;
+      text: string;
+    }>;
   };
 } 

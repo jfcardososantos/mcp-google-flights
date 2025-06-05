@@ -9,6 +9,7 @@ import {
 import type {
   Tool,
   CallToolRequest,
+  ToolResponse,
 } from '@modelcontextprotocol/sdk/types.js';
 import axios from 'axios';
 import { z } from 'zod';
@@ -103,9 +104,7 @@ class GoogleFlightsMCPServer {
         version: '1.0.0',
       },
       {
-        capabilities: {
-          tools: {},
-        },
+        tools: {},
       }
     );
 
@@ -114,142 +113,148 @@ class GoogleFlightsMCPServer {
 
   private setupToolHandlers() {
     // Listar ferramentas disponíveis
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      return {
-        tools: [
-          {
-            name: 'search_flights',
-            description: 'Buscar voos entre dois aeroportos com opções avançadas',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                departure_id: {
-                  type: 'string',
-                  description: 'Código IATA do aeroporto de origem (ex: GRU, JFK, LHR)',
-                },
-                arrival_id: {
-                  type: 'string',
-                  description: 'Código IATA do aeroporto de destino (ex: GRU, JFK, LHR)',
-                },
-                outbound_date: {
-                  type: 'string',
-                  description: 'Data de partida no formato YYYY-MM-DD',
-                },
-                return_date: {
-                  type: 'string',
-                  description: 'Data de retorno no formato YYYY-MM-DD (opcional para viagem de ida)',
-                },
-                currency: {
-                  type: 'string',
-                  description: 'Código da moeda (BRL, USD, EUR, etc.)',
-                  default: 'BRL',
-                },
-                language: {
-                  type: 'string',
-                  description: 'Código do idioma (pt-BR, en, es, etc.)',
-                  default: 'pt-BR',
-                },
-                adults: {
-                  type: 'number',
-                  description: 'Número de adultos (1-9)',
-                  default: 1,
-                },
-                children: {
-                  type: 'number',
-                  description: 'Número de crianças (0-8)',
-                  default: 0,
-                },
-                infants: {
-                  type: 'number',
-                  description: 'Número de bebês (0-8)',
-                  default: 0,
-                },
-                travel_class: {
-                  type: 'string',
-                  description: 'Classe de viagem: 1=Economy, 2=Premium Economy, 3=Business, 4=First',
-                  default: '1',
-                },
-                max_price: {
-                  type: 'number',
-                  description: 'Preço máximo desejado',
-                },
-                stops: {
-                  type: 'string',
-                  description: 'Número de paradas: 0=direto, 1=1 parada, 2=2+ paradas',
-                },
-              },
-              required: ['departure_id', 'arrival_id', 'outbound_date'],
-            },
-          },
-          {
-            name: 'search_airports',
-            description: 'Buscar aeroportos por nome, cidade ou código',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                query: {
-                  type: 'string',
-                  description: 'Nome da cidade, aeroporto ou código IATA para buscar',
-                },
-                language: {
-                  type: 'string',
-                  description: 'Código do idioma para os resultados (ex: pt-BR, en)',
-                  default: 'pt-BR',
-                },
-              },
-              required: ['query'],
-            },
-          },
-          {
-            name: 'get_flight_insights',
-            description: 'Obter insights e análises sobre voos encontrados',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                flights_data: {
-                  type: 'string',
-                  description: 'Dados dos voos em formato JSON para análise',
-                },
-                criteria: {
-                  type: 'string',
-                  description: 'Critérios de análise: preco, duracao, emissoes, conforto, etc.',
-                  default: 'price',
-                },
-              },
-              required: ['flights_data'],
-            },
-          },
-        ] as Tool[],
-      };
-    });
-
-    // Manipular chamadas de ferramentas
-    this.server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest) => {
-      const { name, arguments: args } = request.params;
-
-      try {
-        switch (name) {
-          case 'search_flights':
-            return await this.searchFlights(args as unknown as z.infer<typeof FlightSearchSchema>);
-          case 'search_airports':
-            return await this.searchAirports(args as unknown as z.infer<typeof AirportSearchSchema>);
-          case 'get_flight_insights':
-            return await this.getFlightInsights(args as unknown as { flights_data: string; criteria?: string });
-          default:
-            throw new Error(`Ferramenta desconhecida: ${name}`);
-        }
-      } catch (error) {
-        logger.error(`Erro ao executar ${name}:`, error);
+    this.server.setRequestHandler<ListToolsRequestSchema, { tools: Tool[] }>(
+      ListToolsRequestSchema,
+      async () => {
         return {
-          content: [
+          tools: [
             {
-              type: 'text',
-              text: `Erro ao executar ${name}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+              name: 'search_flights',
+              description: 'Buscar voos entre dois aeroportos com opções avançadas',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  departure_id: {
+                    type: 'string',
+                    description: 'Código IATA do aeroporto de origem (ex: GRU, JFK, LHR)',
+                  },
+                  arrival_id: {
+                    type: 'string',
+                    description: 'Código IATA do aeroporto de destino (ex: GRU, JFK, LHR)',
+                  },
+                  outbound_date: {
+                    type: 'string',
+                    description: 'Data de partida no formato YYYY-MM-DD',
+                  },
+                  return_date: {
+                    type: 'string',
+                    description: 'Data de retorno no formato YYYY-MM-DD (opcional para viagem de ida)',
+                  },
+                  currency: {
+                    type: 'string',
+                    description: 'Código da moeda (BRL, USD, EUR, etc.)',
+                    default: 'BRL',
+                  },
+                  language: {
+                    type: 'string',
+                    description: 'Código do idioma (pt-BR, en, es, etc.)',
+                    default: 'pt-BR',
+                  },
+                  adults: {
+                    type: 'number',
+                    description: 'Número de adultos (1-9)',
+                    default: 1,
+                  },
+                  children: {
+                    type: 'number',
+                    description: 'Número de crianças (0-8)',
+                    default: 0,
+                  },
+                  infants: {
+                    type: 'number',
+                    description: 'Número de bebês (0-8)',
+                    default: 0,
+                  },
+                  travel_class: {
+                    type: 'string',
+                    description: 'Classe de viagem: 1=Economy, 2=Premium Economy, 3=Business, 4=First',
+                    default: '1',
+                  },
+                  max_price: {
+                    type: 'number',
+                    description: 'Preço máximo desejado',
+                  },
+                  stops: {
+                    type: 'string',
+                    description: 'Número de paradas: 0=direto, 1=1 parada, 2=2+ paradas',
+                  },
+                },
+                required: ['departure_id', 'arrival_id', 'outbound_date'],
+              },
             },
-          ],
+            {
+              name: 'search_airports',
+              description: 'Buscar aeroportos por nome, cidade ou código',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  query: {
+                    type: 'string',
+                    description: 'Nome da cidade, aeroporto ou código IATA para buscar',
+                  },
+                  language: {
+                    type: 'string',
+                    description: 'Código do idioma para os resultados (ex: pt-BR, en)',
+                    default: 'pt-BR',
+                  },
+                },
+                required: ['query'],
+              },
+            },
+            {
+              name: 'get_flight_insights',
+              description: 'Obter insights e análises sobre voos encontrados',
+              inputSchema: {
+                type: 'object',
+                properties: {
+                  flights_data: {
+                    type: 'string',
+                    description: 'Dados dos voos em formato JSON para análise',
+                  },
+                  criteria: {
+                    type: 'string',
+                    description: 'Critérios de análise: preco, duracao, emissoes, conforto, etc.',
+                    default: 'price',
+                  },
+                },
+                required: ['flights_data'],
+              },
+            },
+          ] as Tool[],
         };
       }
-    });
+    );
+
+    // Manipular chamadas de ferramentas
+    this.server.setRequestHandler<CallToolRequest, ToolResponse>(
+      CallToolRequestSchema,
+      async (request: CallToolRequest) => {
+        const { name, arguments: args } = request.params;
+
+        try {
+          switch (name) {
+            case 'search_flights':
+              return await this.searchFlights(args as unknown as z.infer<typeof FlightSearchSchema>);
+            case 'search_airports':
+              return await this.searchAirports(args as unknown as z.infer<typeof AirportSearchSchema>);
+            case 'get_flight_insights':
+              return await this.getFlightInsights(args as unknown as { flights_data: string; criteria?: string });
+            default:
+              throw new Error(`Ferramenta desconhecida: ${name}`);
+          }
+        } catch (error) {
+          logger.error(`Erro ao executar ${name}:`, error);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Erro ao executar ${name}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
+              },
+            ],
+          };
+        }
+      }
+    );
   }
 
   private async searchFlights(args: z.infer<typeof FlightSearchSchema>) {
