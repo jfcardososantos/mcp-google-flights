@@ -2,10 +2,11 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
+import type {
   CallToolRequestSchema,
   ListToolsRequestSchema,
   Tool,
+  CallToolRequest,
 } from '@modelcontextprotocol/sdk/types.js';
 import axios from 'axios';
 import { z } from 'zod';
@@ -103,8 +104,7 @@ class GoogleFlightsMCPServer {
         capabilities: {
           tools: {},
         },
-      },
-      new StdioServerTransport()
+      }
     );
 
     this.setupToolHandlers();
@@ -112,7 +112,7 @@ class GoogleFlightsMCPServer {
 
   private setupToolHandlers() {
     // Listar ferramentas disponíveis
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+    this.server.setRequestHandler('listTools', async () => {
       return {
         tools: [
           {
@@ -222,7 +222,7 @@ class GoogleFlightsMCPServer {
     });
 
     // Manipular chamadas de ferramentas
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    this.server.setRequestHandler('callTool', async (request: CallToolRequest) => {
       const { name, arguments: args } = request.params;
 
       try {
@@ -250,8 +250,7 @@ class GoogleFlightsMCPServer {
     });
   }
 
-  private async searchFlights(args: any) {
-    // Validar argumentos
+  private async searchFlights(args: unknown) {
     const validatedArgs = FlightSearchSchema.parse(args);
 
     try {
@@ -343,7 +342,7 @@ class GoogleFlightsMCPServer {
     }
   }
 
-  private async searchAirports(args: any) {
+  private async searchAirports(args: unknown) {
     const validatedArgs = AirportSearchSchema.parse(args);
 
     try {
@@ -384,7 +383,7 @@ class GoogleFlightsMCPServer {
     }
   }
 
-  private async getFlightInsights(args: any) {
+  private async getFlightInsights(args: unknown) {
     try {
       const flightsData = JSON.parse(args.flights_data);
       const criteria = args.criteria || 'preco'; // Alterado para 'preco' como padrão
@@ -474,37 +473,16 @@ class GoogleFlightsMCPServer {
     }
   }
 
-  private getBestValue(flights: any[]): any {
-    // Algoritmo simples para melhor custo-benefício
-    // Normaliza preço e duração e encontra o melhor balance
-    const prices = flights.map(f => f.price);
-    const durations = flights.map(f => f.total_duration);
-    
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    const minDuration = Math.min(...durations);
-    const maxDuration = Math.max(...durations);
-
-    let bestScore = Infinity;
-    let bestFlight = flights[0];
-
-    flights.forEach(flight => {
-      const normalizedPrice = (flight.price - minPrice) / (maxPrice - minPrice || 1);
-      const normalizedDuration = (flight.total_duration - minDuration) / (maxDuration - minDuration || 1);
-      const score = normalizedPrice + normalizedDuration; // Peso igual para preço e duração
-
-      if (score < bestScore) {
-        bestScore = score;
-        bestFlight = flight;
-      }
+  private getBestValue(flights: FlightResult[]): FlightResult {
+    return flights.reduce((a: FlightResult, b: FlightResult) => {
+      return a.price < b.price ? a : b;
     });
-
-    return bestFlight;
   }
 
   async start() {
     try {
-      await this.server.start();
+      const transport = new StdioServerTransport();
+      await this.server.connect(transport);
       logger.info('Servidor MCP Google Flights iniciado');
     } catch (error) {
       logger.error('Erro ao iniciar servidor:', error);
