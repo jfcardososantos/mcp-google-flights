@@ -55,7 +55,7 @@ export class McpGoogleFlights implements INodeType {
       },
       {
         displayName: 'Departure Airport',
-        name: 'departureId',
+        name: 'departure_id',
         type: 'string',
         default: '',
         required: true,
@@ -68,7 +68,7 @@ export class McpGoogleFlights implements INodeType {
       },
       {
         displayName: 'Arrival Airport',
-        name: 'arrivalId',
+        name: 'arrival_id',
         type: 'string',
         default: '',
         required: true,
@@ -81,7 +81,7 @@ export class McpGoogleFlights implements INodeType {
       },
       {
         displayName: 'Outbound Date',
-        name: 'outboundDate',
+        name: 'outbound_date',
         type: 'string',
         default: '',
         required: true,
@@ -94,7 +94,7 @@ export class McpGoogleFlights implements INodeType {
       },
       {
         displayName: 'Return Date',
-        name: 'returnDate',
+        name: 'return_date',
         type: 'string',
         default: '',
         displayOptions: {
@@ -119,7 +119,7 @@ export class McpGoogleFlights implements INodeType {
       },
       {
         displayName: 'Flights Data',
-        name: 'flightsData',
+        name: 'flights_data',
         type: 'string',
         default: '',
         required: true,
@@ -146,10 +146,10 @@ export class McpGoogleFlights implements INodeType {
           command = {
             command: 'search_flights',
             arguments: {
-              departure_id: this.getNodeParameter('departureId', i) as string,
-              arrival_id: this.getNodeParameter('arrivalId', i) as string,
-              outbound_date: this.getNodeParameter('outboundDate', i) as string,
-              return_date: this.getNodeParameter('returnDate', i) as string,
+              departure_id: this.getNodeParameter('departure_id', i) as string,
+              arrival_id: this.getNodeParameter('arrival_id', i) as string,
+              outbound_date: this.getNodeParameter('outbound_date', i) as string,
+              return_date: this.getNodeParameter('return_date', i) as string,
             },
           };
         } else if (operation === 'searchAirports') {
@@ -163,7 +163,7 @@ export class McpGoogleFlights implements INodeType {
           command = {
             command: 'get_flight_insights',
             arguments: {
-              flights_data: this.getNodeParameter('flightsData', i) as string,
+              flights_data: this.getNodeParameter('flights_data', i) as string,
               criteria: this.getNodeParameter('criteria', i) as string,
             },
           };
