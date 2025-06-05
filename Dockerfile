@@ -14,17 +14,21 @@ WORKDIR /app
 # Copiar arquivos de dependências
 COPY package*.json ./
 
-# Instalar dependências
-RUN npm install --omit=dev --ignore-scripts && \
-    npm cache clean --force
+# Instalar todas as dependências (incluindo devDependencies) para o build
+RUN npm install --ignore-scripts
 
 # Copiar código fonte
 COPY --chown=nodejs:nodejs . .
 
 # Build da aplicação
 RUN npm run build && \
+    # Remover arquivos desnecessários
     rm -rf src/ && \
-    rm -rf node_modules/@types
+    rm -rf node_modules/@types && \
+    # Remover dependências de desenvolvimento
+    npm prune --production && \
+    # Limpar cache
+    npm cache clean --force
 
 # Configurar permissões
 RUN chown -R nodejs:nodejs /app
