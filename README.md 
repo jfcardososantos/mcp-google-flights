@@ -1,0 +1,427 @@
+# Google Flights MCP Server
+
+Um servidor MCP (Model Context Protocol) para busca de voos usando a SerpAPI do Google Flights. Este servidor permite que IAs busquem voos, aeroportos e obtenham insights sobre viagens de forma programática.
+
+## Características
+
+- 🛫 **Busca de Voos**: Pesquise voos entre qualquer aeroporto do mundo
+- 🏢 **Busca de Aeroportos**: Encontre aeroportos por nome, cidade ou código IATA
+- 📊 **Insights Inteligentes**: Análise automática de voos por preço, duração, emissões de carbono
+- 🌍 **Global**: Suporte a múltiplas moedas e idiomas
+- 🔧 **Configurável**: Classe de viagem, número de passageiros, paradas, preço máximo
+- 🤖 **IA-Ready**: Projetado para integração com assistentes de IA
+
+## Instalação
+
+### Pré-requisitos
+
+- Node.js 18+
+- Conta SerpAPI (https://serpapi.com)
+- Chave da API SerpAPI
+
+### Configuração Local
+
+1. Clone o repositório:
+```bash
+git clone https://github.com/yourusername/mcp-google-flights.git
+cd mcp-google-flights
+```
+
+2. Instale as dependências:
+```bash
+npm install
+```
+
+3. Configure as variáveis de ambiente:
+```bash
+cp .env.example .env
+```
+
+Edite o arquivo `.env` e adicione sua chave da SerpAPI:
+```
+SERP_API_KEY=sua_chave_serpapi_aqui
+```
+
+4. Compile o projeto:
+```bash
+npm run build
+```
+
+5. Execute o servidor:
+```bash
+npm start
+```
+
+### Usando Docker
+
+1. Build da imagem:
+```bash
+docker build -t mcp-google-flights .
+```
+
+2. Execute o container:
+```bash
+docker run -e SERP_API_KEY=sua_chave_serpapi_aqui mcp-google-flights
+```
+
+## Ferramentas Disponíveis
+
+### 1. search_flights
+
+Busca voos entre dois aeroportos.
+
+**Parâmetros:**
+- `departure_id` (obrigatório): Código IATA do aeroporto de origem
+- `arrival_id` (obrigatório): Código IATA do aeroporto de destino  
+- `outbound_date` (obrigatório): Data de ida (YYYY-MM-DD)
+- `return_date` (opcional): Data de volta (YYYY-MM-DD)
+- `currency` (opcional): Código da moeda (USD, BRL, EUR, etc.)
+- `language` (opcional): Idioma dos resultados (en, pt, es, etc.)
+- `adults` (opcional): Número de adultos (1-9)
+- `children` (opcional): Número de crianças (0-8)
+- `infants` (opcional): Número de bebês (0-8)
+- `travel_class` (opcional): Classe de viagem (1=Economy, 2=Premium, 3=Business, 4=First)
+- `max_price` (opcional): Preço máximo
+- `stops` (opcional): Filtro de paradas (0=direto, 1=1 parada, 2=2+ paradas)
+
+**Exemplo:**
+```json
+{
+  "departure_id": "GRU",
+  "arrival_id": "JFK", 
+  "outbound_date": "2025-07-15",
+  "return_date": "2025-07-22",
+  "currency": "BRL",
+  "language": "pt",
+  "adults": 2,
+  "travel_class": "1"
+}
+```
+
+### 2. search_airports
+
+Busca aeroportos por nome, cidade ou código.
+
+**Parâmetros:**
+- `query` (obrigatório): Termo de busca
+- `language` (opcional): Idioma dos resultados
+
+**Exemplo:**
+```json
+{
+  "query": "São Paulo",
+  "language": "pt"
+}
+```
+
+### 3. get_flight_insights
+
+Analisa dados de voos e fornece recomendações.
+
+**Parâmetros:**
+- `flights_data` (obrigatório): Dados dos voos em JSON
+- `criteria` (opcional): Critério de análise (price, duration, emissions, comfort)
+
+## Integração com IA
+
+### Claude Desktop
+
+Adicione ao seu `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "google-flights": {
+      "command": "node",
+      "args": ["/caminho/para/mcp-google-flights/dist/index.js"],
+      "env": {
+        "SERP_API_KEY": "sua_chave_serpapi_aqui"
+      }
+    }
+  }
+}
+```
+
+### n8n Community Node
+
+Para usar como community node no n8n:
+
+1. Publique este projeto no npm
+2. No n8n, vá em Settings > Community Nodes
+3. Instale usando o nome do pacote
+4. Configure sua chave SerpAPI nas credenciais
+
+### Outros Clientes MCP
+
+Este servidor segue o protocolo MCP padrão e pode ser usado com qualquer cliente compatível.
+
+## Exemplos de Uso
+
+### Busca Simples de Voos
+```bash
+# Exemplo usando curl (se executando como API)
+curl -X POST http://localhost:3000/search_flights \
+  -H "Content-Type: application/json" \
+  -d '{
+    "departure_id": "GRU",
+    "arrival_id": "CDG",
+    "outbound_date": "2025-08-15",
+    "currency": "BRL"
+  }'
+```
+
+### Prompt para IA
+```
+Encontre voos de São Paulo para Paris saindo em 15 de agosto de 2025, 
+voltando em 22 de agosto, para 2 adultos, classe executiva, 
+moeda BRL. Analise as opções e recomende a melhor considerando 
+preço e duração.
+```
+
+## Estrutura do Projeto
+
+```
+mcp-google-flights/
+├── src/
+│   └── index.ts          # Servidor MCP principal
+├── dist/                 # Código compilado
+├── package.json          # Dependências e scripts
+├── tsconfig.json         # Configuração TypeScript
+├── Dockerfile            # Container Docker
+├── .env.example          # Exemplo de variáveis de ambiente
+└── README.md            # Este arquivo
+```
+
+## Desenvolvimento
+
+### Scripts Disponíveis
+
+```bash
+npm run dev          # Executar em modo desenvolvimento
+npm run build        # Compilar TypeScript
+npm start           # Executar versão compilada
+npm test            # Executar testes
+```
+
+### Estrutura de Resposta
+
+#### Busca de Voos
+```json
+{
+  "summary": {
+    "total_flights_found": 15,
+    "price_range": {
+      "min": 1200,
+      "max": 4500,
+      "currency": "BRL"
+    },
+    "airlines": ["LATAM", "GOL", "Air France"],
+    "search_parameters": {
+      "route": "GRU → CDG",
+      "departure_date": "2025-08-15",
+      "return_date": "2025-08-22",
+      "passengers": {
+        "adults": 2,
+        "children": 0,
+        "infants": 0
+      }
+    }
+  },
+  "flights": [
+    {
+      "airline": "LATAM",
+      "price": 2350,
+      "currency": "BRL",
+      "total_duration": 720,
+      "departure_time": "2025-08-15T22:30:00",
+      "arrival_time": "2025-08-16T14:15:00",
+      "departure_airport": {
+        "name": "São Paulo Guarulhos International Airport",
+        "id": "GRU"
+      },
+      "arrival_airport": {
+        "name": "Charles de Gaulle Airport",
+        "id": "CDG"
+      },
+      "stops": 0,
+      "carbon_emissions": {
+        "this_flight": 850,
+        "typical_for_this_route": 920,
+        "difference_percent": -8
+      }
+    }
+  ]
+}
+```
+
+#### Busca de Aeroportos
+```json
+{
+  "query": "São Paulo",
+  "total_airports_found": 3,
+  "airports": [
+    {
+      "id": "GRU",
+      "name": "São Paulo Guarulhos International Airport",
+      "city": "São Paulo",
+      "country": "Brazil",
+      "country_code": "BR"
+    },
+    {
+      "id": "CGH",
+      "name": "São Paulo Congonhas Airport",
+      "city": "São Paulo", 
+      "country": "Brazil",
+      "country_code": "BR"
+    }
+  ]
+}
+```
+
+### Tratamento de Erros
+
+O servidor trata diversos tipos de erro:
+
+- **Validação de entrada**: Parâmetros inválidos ou ausentes
+- **Limites da API**: Rate limiting da SerpAPI
+- **Conexão**: Problemas de rede
+- **Dados**: Respostas inesperadas da API
+
+Exemplo de resposta de erro:
+```json
+{
+  "error": "Código do aeroporto de origem deve ter pelo menos 3 caracteres",
+  "code": "VALIDATION_ERROR"
+}
+```
+
+## Configuração Avançada
+
+### Variáveis de Ambiente
+
+```bash
+# Obrigatório
+SERP_API_KEY=sua_chave_serpapi
+
+# Opcional
+PORT=3000
+LOG_LEVEL=info
+CACHE_TTL=300
+MAX_RESULTS=50
+DEFAULT_CURRENCY=USD
+DEFAULT_LANGUAGE=en
+```
+
+### Limites da SerpAPI
+
+- **Plano gratuito**: 100 buscas/mês
+- **Plano pago**: A partir de $50/mês para 5.000 buscas
+- **Rate limiting**: Máximo 1 request/segundo
+
+### Códigos de Aeroportos IATA Populares
+
+| Código | Aeroporto | Cidade |
+|--------|-----------|---------|
+| GRU | Guarulhos | São Paulo, Brasil |
+| GIG | Galeão | Rio de Janeiro, Brasil |
+| BSB | Brasília | Brasília, Brasil |
+| JFK | John F. Kennedy | Nova York, EUA |
+| LAX | Los Angeles | Los Angeles, EUA |
+| LHR | Heathrow | Londres, Reino Unido |
+| CDG | Charles de Gaulle | Paris, França |
+| NRT | Narita | Tóquio, Japão |
+| DXB | Dubai International | Dubai, EAU |
+
+## Casos de Uso
+
+### 1. Assistente de Viagem Pessoal
+```
+"Encontre voos baratos de São Paulo para Londres em dezembro, 
+com máximo de 1 parada, para 2 pessoas"
+```
+
+### 2. Comparação de Preços
+```
+"Compare preços de voos GRU-JFK para diferentes datas em julho, 
+mostre a variação de preços"
+```
+
+### 3. Análise de Sustentabilidade
+```
+"Quais são os voos com menor emissão de carbono de Brasília 
+para Buenos Aires?"
+```
+
+### 4. Planejamento Corporativo
+```
+"Busque voos executivos de São Paulo para Frankfurt, 
+saída segunda-feira manhã, volta sexta-feira tarde"
+```
+
+## Solução de Problemas
+
+### Erro: "SERP_API_KEY não encontrada"
+- Verifique se o arquivo `.env` existe
+- Confirme que a variável está definida corretamente
+- Reinicie a aplicação após alterar o `.env`
+
+### Erro: "Limite de API excedido"
+- Verifique seu plano SerpAPI
+- Considere implementar cache para reduzir chamadas
+- Monitore o uso da API
+
+### Erro: "Aeroporto não encontrado"
+- Use códigos IATA de 3 letras válidos
+- Verifique a grafia do código do aeroporto
+- Use a ferramenta `search_airports` para encontrar códigos
+
+### Performance Lenta
+- Verifique sua conexão com internet
+- SerpAPI pode ter latência variável
+- Considere cache local para buscas frequentes
+
+## Contribuição
+
+1. Fork o repositório
+2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
+3. Commit suas mudanças (`git commit -am 'Adiciona nova feature'`)
+4. Push para a branch (`git push origin feature/nova-feature`)
+5. Abra um Pull Request
+
+### Padrões de Código
+
+- Use TypeScript strict mode
+- Siga as convenções ESLint
+- Adicione testes para novas features
+- Documente mudanças no README
+
+## Roadmap
+
+- [ ] Cache inteligente de resultados
+- [ ] Suporte a múltiplas APIs de voos
+- [ ] Interface web para testes
+- [ ] Métricas e monitoramento
+- [ ] Suporte a reservas (webhook)
+- [ ] Integração com calendários
+- [ ] Alertas de preço
+- [ ] API GraphQL
+
+## Licença
+
+MIT License - veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+## Suporte
+
+- **Issues**: https://github.com/yourusername/mcp-google-flights/issues
+- **Documentação**: https://github.com/yourusername/mcp-google-flights/wiki
+- **SerpAPI Docs**: https://serpapi.com/google-flights-api
+
+## Agradecimentos
+
+- [SerpAPI](https://serpapi.com) pela API do Google Flights
+- [ModelContextProtocol](https://github.com/modelcontextprotocol) pelo protocolo MCP
+- Comunidade open source
+
+---
+
+**Nota**: Este projeto não é oficialmente afiliado com Google, SerpAPI ou n8n. É um projeto independente para facilitar a integração com APIs de busca de voos.
