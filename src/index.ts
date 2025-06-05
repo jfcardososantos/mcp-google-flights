@@ -5,6 +5,8 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
+import type {
   Tool,
   CallToolRequest,
 } from '@modelcontextprotocol/sdk/types.js';
@@ -470,7 +472,7 @@ class GoogleFlightsMCPServer {
   }
 
   private getBestValue(flights: FlightResult[]): FlightResult {
-    return flights.reduce((a: FlightResult, b: FlightResult) => {
+    return flights.reduce((a: FlightResult, b: FlightResult): FlightResult => {
       return a.price < b.price ? a : b;
     });
   }
